@@ -17,7 +17,7 @@ const docTemplate = `{
     "paths": {
         "/users": {
             "get": {
-                "description": "Возвращает массив всех пользователей",
+                "description": "Возвращает пагинационный ответ пользователей",
                 "consumes": [
                     "application/json"
                 ],
@@ -27,21 +27,43 @@ const docTemplate = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Получить список всех пользователей",
+                "summary": "Получить при помощи пагинации пользователей",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Номер страницы (дефолт: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Размер страницы (дефолт: 10, макс: 100)",
+                        "name": "size",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/response.User"
+                            "type": "object",
+                            "properties": {
+                                "data": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/user-service_internal_delivery_rest_response.User"
+                                    }
+                                },
+                                "total_count": {
+                                    "type": "integer"
+                                }
                             }
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Error"
+                            "$ref": "#/definitions/user-service_internal_delivery_rest_response.Error"
                         }
                     }
                 }
@@ -65,37 +87,33 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/request.CreateUser"
+                            "$ref": "#/definitions/user-service_internal_delivery_rest_request.CreateUser"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "id пользователя",
+                        "description": "Созданный пользователь",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "integer",
-                                "format": "int64"
-                            }
+                            "$ref": "#/definitions/user-service_internal_delivery_rest_response.User"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Error"
+                            "$ref": "#/definitions/user-service_internal_delivery_rest_response.Error"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/response.Error"
+                            "$ref": "#/definitions/user-service_internal_delivery_rest_response.Error"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Error"
+                            "$ref": "#/definitions/user-service_internal_delivery_rest_response.Error"
                         }
                     }
                 }
@@ -127,25 +145,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.User"
+                            "$ref": "#/definitions/user-service_internal_delivery_rest_response.User"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Error"
+                            "$ref": "#/definitions/user-service_internal_delivery_rest_response.Error"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/response.Error"
+                            "$ref": "#/definitions/user-service_internal_delivery_rest_response.Error"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Error"
+                            "$ref": "#/definitions/user-service_internal_delivery_rest_response.Error"
                         }
                     }
                 }
@@ -176,7 +194,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/request.UpdateUser"
+                            "$ref": "#/definitions/user-service_internal_delivery_rest_request.UpdateUser"
                         }
                     }
                 ],
@@ -187,19 +205,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Error"
+                            "$ref": "#/definitions/user-service_internal_delivery_rest_response.Error"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/response.Error"
+                            "$ref": "#/definitions/user-service_internal_delivery_rest_response.Error"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Error"
+                            "$ref": "#/definitions/user-service_internal_delivery_rest_response.Error"
                         }
                     }
                 }
@@ -232,13 +250,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Error"
+                            "$ref": "#/definitions/user-service_internal_delivery_rest_response.Error"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Error"
+                            "$ref": "#/definitions/user-service_internal_delivery_rest_response.Error"
                         }
                     }
                 }
@@ -246,7 +264,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "request.CreateUser": {
+        "user-service_internal_delivery_rest_request.CreateUser": {
             "type": "object",
             "required": [
                 "email",
@@ -268,7 +286,7 @@ const docTemplate = `{
                 }
             }
         },
-        "request.UpdateUser": {
+        "user-service_internal_delivery_rest_request.UpdateUser": {
             "type": "object",
             "required": [
                 "email",
@@ -290,7 +308,7 @@ const docTemplate = `{
                 }
             }
         },
-        "response.Error": {
+        "user-service_internal_delivery_rest_response.Error": {
             "type": "object",
             "properties": {
                 "details": {
@@ -304,7 +322,7 @@ const docTemplate = `{
                 }
             }
         },
-        "response.User": {
+        "user-service_internal_delivery_rest_response.User": {
             "type": "object",
             "properties": {
                 "created_at": {

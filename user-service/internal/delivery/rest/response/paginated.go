@@ -1,6 +1,6 @@
 package response
 
-type Paginated[T any] struct {
+type PaginationResult[T any] struct {
 	TotalCount uint64 `json:"total_count"`
 	Data       []T    `json:"data"`
 }

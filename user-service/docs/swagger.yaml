@@ -1,6 +1,6 @@
 basePath: /api/v1
 definitions:
-  request.CreateUser:
+  user-service_internal_delivery_rest_request.CreateUser:
     properties:
       email:
         type: string
@@ -16,7 +16,7 @@ definitions:
     - password
     - user_name
     type: object
-  request.UpdateUser:
+  user-service_internal_delivery_rest_request.UpdateUser:
     properties:
       email:
         type: string
@@ -32,7 +32,7 @@ definitions:
     - password
     - user_name
     type: object
-  response.Error:
+  user-service_internal_delivery_rest_response.Error:
     properties:
       details:
         additionalProperties:
@@ -41,7 +41,7 @@ definitions:
       message:
         type: string
     type: object
-  response.User:
+  user-service_internal_delivery_rest_response.User:
     properties:
       created_at:
         type: string
@@ -62,21 +62,35 @@ paths:
     get:
       consumes:
       - application/json
-      description: Возвращает массив всех пользователей
+      description: Возвращает пагинационный ответ пользователей
+      parameters:
+      - description: 'Номер страницы (дефолт: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Размер страницы (дефолт: 10, макс: 100)'
+        in: query
+        name: size
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/response.User'
-            type: array
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/user-service_internal_delivery_rest_response.User'
+                type: array
+              total_count:
+                type: integer
+            type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.Error'
-      summary: Получить список всех пользователей
+            $ref: '#/definitions/user-service_internal_delivery_rest_response.Error'
+      summary: Получить при помощи пагинации пользователей
       tags:
       - users
     post:
@@ -89,29 +103,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/request.CreateUser'
+          $ref: '#/definitions/user-service_internal_delivery_rest_request.CreateUser'
       produces:
       - application/json
       responses:
         "201":
-          description: id пользователя
+          description: Созданный пользователь
           schema:
-            additionalProperties:
-              format: int64
-              type: integer
-            type: object
+            $ref: '#/definitions/user-service_internal_delivery_rest_response.User'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Error'
+            $ref: '#/definitions/user-service_internal_delivery_rest_response.Error'
         "409":
           description: Conflict
           schema:
-            $ref: '#/definitions/response.Error'
+            $ref: '#/definitions/user-service_internal_delivery_rest_response.Error'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.Error'
+            $ref: '#/definitions/user-service_internal_delivery_rest_response.Error'
       summary: Создать нового пользователя
       tags:
       - users
@@ -134,11 +145,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Error'
+            $ref: '#/definitions/user-service_internal_delivery_rest_response.Error'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.Error'
+            $ref: '#/definitions/user-service_internal_delivery_rest_response.Error'
       summary: Удалить пользователя
       tags:
       - users
@@ -158,19 +169,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.User'
+            $ref: '#/definitions/user-service_internal_delivery_rest_response.User'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Error'
+            $ref: '#/definitions/user-service_internal_delivery_rest_response.Error'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/response.Error'
+            $ref: '#/definitions/user-service_internal_delivery_rest_response.Error'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.Error'
+            $ref: '#/definitions/user-service_internal_delivery_rest_response.Error'
       summary: Получить пользователя по ID
       tags:
       - users
@@ -189,7 +200,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/request.UpdateUser'
+          $ref: '#/definitions/user-service_internal_delivery_rest_request.UpdateUser'
       produces:
       - application/json
       responses:
@@ -198,15 +209,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Error'
+            $ref: '#/definitions/user-service_internal_delivery_rest_response.Error'
         "409":
           description: Conflict
           schema:
-            $ref: '#/definitions/response.Error'
+            $ref: '#/definitions/user-service_internal_delivery_rest_response.Error'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.Error'
+            $ref: '#/definitions/user-service_internal_delivery_rest_response.Error'
       summary: Обновить данные пользователя
       tags:
       - users

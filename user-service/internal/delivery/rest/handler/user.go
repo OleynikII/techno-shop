@@ -39,7 +39,7 @@ func NewUserHandler(base *BaseHandler, users Users) *UserHandler {
 // @Produce      json
 // @Param        page  query     int  false  "Номер страницы (дефолт: 1)"
 // @Param        size  query     int  false  "Размер страницы (дефолт: 10, макс: 100)"
-// @Success      200  {object}  response.PaginationResult[response.User]
+// @Success      200  {object}  object{total_count=int,data=[]response.User}
 // @Failure      500  {object}  response.Error
 // @Router       /users [get]
 func (h *UserHandler) GetPaginated(w http.ResponseWriter, r *http.Request) {
@@ -60,7 +60,7 @@ func (h *UserHandler) GetPaginated(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	res := response.Paginated[response.User]{
+	res := response.PaginationResult[response.User]{
 		TotalCount: paginatedResult.TotalCount,
 		Data:       mappedUsers,
 	}
