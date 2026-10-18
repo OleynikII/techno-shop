@@ -41,7 +41,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     }
                 }
@@ -81,21 +81,21 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request body / Validation error",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     },
                     "409": {
-                        "description": "Email or Username already exists",
+                        "description": "Conflict",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     }
                 }
@@ -131,21 +131,21 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid user ID",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     }
                 }
@@ -185,21 +185,21 @@ const docTemplate = `{
                         "description": "Успешно обновлено, без тела ответа"
                     },
                     "400": {
-                        "description": "Invalid ID / Invalid request body",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     },
                     "409": {
-                        "description": "Email or Username already exists",
+                        "description": "Conflict",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     }
                 }
@@ -230,15 +230,15 @@ const docTemplate = `{
                         "description": "Успешно удалено"
                     },
                     "400": {
-                        "description": "Invalid ID",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     }
                 }
@@ -248,28 +248,58 @@ const docTemplate = `{
     "definitions": {
         "request.CreateUser": {
             "type": "object",
+            "required": [
+                "email",
+                "password",
+                "user_name"
+            ],
             "properties": {
                 "email": {
                     "type": "string"
                 },
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 8
                 },
                 "user_name": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 32,
+                    "minLength": 3
                 }
             }
         },
         "request.UpdateUser": {
             "type": "object",
+            "required": [
+                "email",
+                "password",
+                "user_name"
+            ],
             "properties": {
                 "email": {
                     "type": "string"
                 },
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 8
                 },
                 "user_name": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "minLength": 3
+                }
+            }
+        },
+        "response.Error": {
+            "type": "object",
+            "properties": {
+                "details": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "message": {
                     "type": "string"
                 }
             }
@@ -297,11 +327,11 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8080",
+	Host:             "",
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
-	Title:            "User App API",
-	Description:      "API Server for Users Application",
+	Title:            "user-service",
+	Description:      "Веб апи для работы с пользователями",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

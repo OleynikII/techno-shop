@@ -2,7 +2,7 @@ package domain
 
 import "time"
 
-type base struct {
-	ID        int64
-	CreatedAt time.Time
+type BaseEntity struct {
+	ID        int64     `db:"id"`
+	CreatedAt time.Time `db:"created_at"`
 }

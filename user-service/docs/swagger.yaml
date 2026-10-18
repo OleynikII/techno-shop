@@ -5,17 +5,40 @@ definitions:
       email:
         type: string
       password:
+        minLength: 8
         type: string
       user_name:
+        maxLength: 32
+        minLength: 3
         type: string
+    required:
+    - email
+    - password
+    - user_name
     type: object
   request.UpdateUser:
     properties:
       email:
         type: string
       password:
+        minLength: 8
         type: string
       user_name:
+        maxLength: 32
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    - user_name
+    type: object
+  response.Error:
+    properties:
+      details:
+        additionalProperties:
+          type: string
+        type: object
+      message:
         type: string
     type: object
   response.User:
@@ -29,11 +52,10 @@ definitions:
       user_name:
         type: string
     type: object
-host: localhost:8080
 info:
   contact: {}
-  description: API Server for Users Application
-  title: User App API
+  description: Веб апи для работы с пользователями
+  title: user-service
   version: "1.0"
 paths:
   /users:
@@ -53,7 +75,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/response.Error'
       summary: Получить список всех пользователей
       tags:
       - users
@@ -79,17 +101,17 @@ paths:
               type: integer
             type: object
         "400":
-          description: Invalid request body / Validation error
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.Error'
         "409":
-          description: Email or Username already exists
+          description: Conflict
           schema:
-            type: string
+            $ref: '#/definitions/response.Error'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/response.Error'
       summary: Создать нового пользователя
       tags:
       - users
@@ -110,13 +132,13 @@ paths:
         "204":
           description: Успешно удалено
         "400":
-          description: Invalid ID
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.Error'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/response.Error'
       summary: Удалить пользователя
       tags:
       - users
@@ -138,17 +160,17 @@ paths:
           schema:
             $ref: '#/definitions/response.User'
         "400":
-          description: Invalid user ID
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.Error'
         "404":
           description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/response.Error'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/response.Error'
       summary: Получить пользователя по ID
       tags:
       - users
@@ -174,17 +196,17 @@ paths:
         "204":
           description: Успешно обновлено, без тела ответа
         "400":
-          description: Invalid ID / Invalid request body
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.Error'
         "409":
-          description: Email or Username already exists
+          description: Conflict
           schema:
-            type: string
+            $ref: '#/definitions/response.Error'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/response.Error'
       summary: Обновить данные пользователя
       tags:
       - users

@@ -1,10 +1,10 @@
 package domain
 
 type User struct {
-	base
-	UserName     string
-	Email        string
-	PasswordHash string
+	BaseEntity
+	UserName     string `db:"user_name"`
+	Email        string `db:"email"`
+	PasswordHash string `db:"password_hash"`
 }
 
 type CreateUser struct {

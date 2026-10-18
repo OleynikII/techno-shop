@@ -1,12 +1,11 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "API Server for Users Application",
-        "title": "User App API",
+        "description": "Веб апи для работы с пользователями",
+        "title": "user-service",
         "contact": {},
         "version": "1.0"
     },
-    "host": "localhost:8080",
     "basePath": "/api/v1",
     "paths": {
         "/users": {
@@ -35,7 +34,7 @@
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     }
                 }
@@ -75,21 +74,21 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid request body / Validation error",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     },
                     "409": {
-                        "description": "Email or Username already exists",
+                        "description": "Conflict",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     }
                 }
@@ -125,21 +124,21 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid user ID",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     }
                 }
@@ -179,21 +178,21 @@
                         "description": "Успешно обновлено, без тела ответа"
                     },
                     "400": {
-                        "description": "Invalid ID / Invalid request body",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     },
                     "409": {
-                        "description": "Email or Username already exists",
+                        "description": "Conflict",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     }
                 }
@@ -224,15 +223,15 @@
                         "description": "Успешно удалено"
                     },
                     "400": {
-                        "description": "Invalid ID",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.Error"
                         }
                     }
                 }
@@ -242,28 +241,58 @@
     "definitions": {
         "request.CreateUser": {
             "type": "object",
+            "required": [
+                "email",
+                "password",
+                "user_name"
+            ],
             "properties": {
                 "email": {
                     "type": "string"
                 },
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 8
                 },
                 "user_name": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 32,
+                    "minLength": 3
                 }
             }
         },
         "request.UpdateUser": {
             "type": "object",
+            "required": [
+                "email",
+                "password",
+                "user_name"
+            ],
             "properties": {
                 "email": {
                     "type": "string"
                 },
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 8
                 },
                 "user_name": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "minLength": 3
+                }
+            }
+        },
+        "response.Error": {
+            "type": "object",
+            "properties": {
+                "details": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "message": {
                     "type": "string"
                 }
             }

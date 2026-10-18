@@ -1,90 +1,68 @@
-package rest
+package handler
 
 import (
-	"GoTest/internal/delivery/contracts/request"
-	"GoTest/internal/delivery/contracts/response"
-	"GoTest/internal/domain"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
-	"strconv"
+	"user-service/internal/delivery/rest/request"
+	"user-service/internal/delivery/rest/response"
+	"user-service/internal/domain"
 )
 
 type Users interface {
-	GetAll(ctx context.Context) ([]domain.User, error)
+	GetPaginated(ctx context.Context, param domain.PaginationParam) (*domain.PaginationResult[domain.User], error)
 	GetByID(ctx context.Context, id int64) (*domain.User, error)
 
-	Create(ctx context.Context, dto domain.CreateUser) (int64, error)
+	Create(ctx context.Context, dto domain.CreateUser) (*domain.User, error)
 	Update(ctx context.Context, id int64, dto domain.UpdateUser) error
 
 	Delete(ctx context.Context, id int64) error
 }
 
 type UserHandler struct {
+	*BaseHandler
 	users Users
 }
 
-func NewUserHandler(users Users) *UserHandler {
-	return &UserHandler{users: users}
-}
-
-var domainToHTTPStatus = map[error]int{
-	domain.ErrNotFound:              http.StatusNotFound,
-	domain.ErrValidationIssuers:     http.StatusBadRequest,
-	domain.ErrEmailAlreadyExists:    http.StatusConflict,
-	domain.ErrUserNameAlreadyExists: http.StatusConflict,
-}
-
-func (h *UserHandler) handleError(w http.ResponseWriter, err error, logMsg string, args ...any) {
-	for domainErr, statusCode := range domainToHTTPStatus {
-		if errors.Is(err, domainErr) {
-			http.Error(w, err.Error(), statusCode)
-			return
-		}
-	}
-
-	logArgs := append(args, "error", err)
-	slog.Error(logMsg, logArgs...)
-	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-}
-
-func (h *UserHandler) parseID(w http.ResponseWriter, r *http.Request) (int64, bool) {
-	idStr := r.PathValue("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
-		return 0, false
-	}
-	return id, true
+func NewUserHandler(base *BaseHandler, users Users) *UserHandler {
+	return &UserHandler{
+		BaseHandler: base,
+		users:       users}
 }
 
 // GetAll godoc
-// @Summary      Получить список всех пользователей
-// @Description  Возвращает массив всех пользователей
+// @Summary      Получить при помощи пагинации пользователей
+// @Description  Возвращает пагинационный ответ пользователей
 // @Tags         users
 // @Accept       json
 // @Produce      json
-// @Success      200  {array}   response.User
-// @Failure      500  {string}  string "Internal Server Error"
+// @Param        page  query     int  false  "Номер страницы (дефолт: 1)"
+// @Param        size  query     int  false  "Размер страницы (дефолт: 10, макс: 100)"
+// @Success      200  {object}  response.PaginationResult[response.User]
+// @Failure      500  {object}  response.Error
 // @Router       /users [get]
-func (h *UserHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	users, err := h.users.GetAll(r.Context())
+func (h *UserHandler) GetPaginated(w http.ResponseWriter, r *http.Request) {
+	paginationParam := h.ParsePagination(r)
+	paginatedResult, err := h.users.GetPaginated(r.Context(), paginationParam)
 	if err != nil {
-		h.handleError(w, err, "failed to get users")
+		h.HandleError(w, err, "failed to get paginated users")
 		return
 	}
 
-	res := make([]response.User, 0, len(users))
-	for _, user := range users {
-		res = append(res, response.User{
+	mappedUsers := make([]response.User, 0, len(paginatedResult.Data))
+	for _, user := range paginatedResult.Data {
+		mappedUsers = append(mappedUsers, response.User{
 			ID:        user.ID,
 			UserName:  user.UserName,
 			Email:     user.Email,
 			CreatedAt: user.CreatedAt,
 		})
+	}
+
+	res := response.Paginated[response.User]{
+		TotalCount: paginatedResult.TotalCount,
+		Data:       mappedUsers,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -99,19 +77,19 @@ func (h *UserHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 // @Produce      json
 // @Param        id   path      int  true  "User ID"
 // @Success      200  {object}  response.User
-// @Failure      400  {string}  string "Invalid user ID"
-// @Failure      404  {string}  string "Not Found"
-// @Failure      500  {string}  string "Internal Server Error"
+// @Failure      400  {object}  response.Error
+// @Failure      404  {object}  response.Error
+// @Failure      500  {object}  response.Error
 // @Router       /users/{id} [get]
 func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
-	id, ok := h.parseID(w, r)
+	id, ok := h.ParseID(w, r, "id")
 	if !ok {
 		return
 	}
 
 	user, err := h.users.GetByID(r.Context(), id)
 	if err != nil {
-		h.handleError(w, err, "failed to get user by id", "user_id", id)
+		h.HandleError(w, err, "failed to get user by id", "user_id", id)
 		return
 	}
 
@@ -133,15 +111,29 @@ func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Produce      json
 // @Param        request  body      request.CreateUser  true  "Данные пользователя"
-// @Success      201      {object}  map[string]int64    "id пользователя"
-// @Failure      400      {string}  string              "Invalid request body / Validation error"
-// @Failure      409      {string}  string              "Email or Username already exists"
-// @Failure      500      {string}  string              "Internal Server Error"
+// @Success      201      {object}  response.User   "Созданный пользователь"
+// @Failure      400      {object}  response.Error
+// @Failure      409      {object}  response.Error
+// @Failure      500      {object}  response.Error
 // @Router       /users [post]
 func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
 	var req request.CreateUser
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		validationErr := domain.NewValidationError(map[string]string{
+			"body": "invalid json format or empty body",
+		})
+		h.HandleError(w, validationErr, "failed to decode create request body")
+		return
+	}
+
+	vailidationErr := h.Validate.Struct(req)
+	if vailidationErr != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(vailidationErr.Error())
+
 		return
 	}
 
@@ -151,19 +143,23 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Password: req.Password,
 	}
 
-	id, err := h.users.Create(r.Context(), dto)
+	user, err := h.users.Create(r.Context(), dto)
 	if err != nil {
-		h.handleError(w, err, "failed to create user")
+		h.HandleError(w, err, "failed to create user")
 		return
 	}
 
-	// ИСПРАВЛЕНО: Добавлен префикс /api/v1 в заголовок Location для соответствия новому роутингу
-	w.Header().Set("Location", fmt.Sprintf("/api/v1/users/%d", id))
+	w.Header().Set("Location", fmt.Sprintf("/api/v1/users/%d", user.ID))
 	w.Header().Set("Content-Type", "application/json")
-
 	w.WriteHeader(http.StatusCreated)
 
-	res := map[string]int64{"id": id}
+	res := response.User{
+		ID:        user.ID,
+		UserName:  user.UserName,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt,
+	}
+
 	_ = json.NewEncoder(w).Encode(res)
 }
 
@@ -176,19 +172,24 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 // @Param        id       path      int                 true  "User ID"
 // @Param        request  body      request.UpdateUser  true  "Новые данные"
 // @Success      204      "Успешно обновлено, без тела ответа"
-// @Failure      400      {string}  string              "Invalid ID / Invalid request body"
-// @Failure      409      {string}  string              "Email or Username already exists"
-// @Failure      500      {string}  string              "Internal Server Error"
+// @Failure      400      {object}  response.Error
+// @Failure      409      {object}  response.Error
+// @Failure      500      {object}  response.Error
 // @Router       /users/{id} [put]
 func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
-	id, ok := h.parseID(w, r)
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
+	id, ok := h.ParseID(w, r, "id")
 	if !ok {
 		return
 	}
 
 	var req request.UpdateUser
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		validationErr := domain.NewValidationError(map[string]string{
+			"body": "invalid json format or empty body",
+		})
+		h.HandleError(w, validationErr, "failed to decode update request body", "user_id", id)
 		return
 	}
 
@@ -199,7 +200,7 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.users.Update(r.Context(), id, dto); err != nil {
-		h.handleError(w, err, "failed to update user", "user_id", id)
+		h.HandleError(w, err, "failed to update user", "user_id", id)
 		return
 	}
 
@@ -214,17 +215,17 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 // @Produce      json
 // @Param        id   path      int  true  "User ID"
 // @Success      204  "Успешно удалено"
-// @Failure      400  {string}  string  "Invalid ID"
-// @Failure      500  {string}  string  "Internal Server Error"
+// @Failure      400  {object}  response.Error
+// @Failure      500  {object}  response.Error
 // @Router       /users/{id} [delete]
 func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	id, ok := h.parseID(w, r)
+	id, ok := h.ParseID(w, r, "id")
 	if !ok {
 		return
 	}
 
 	if err := h.users.Delete(r.Context(), id); err != nil {
-		h.handleError(w, err, "failed to delete user", "user_id", id)
+		h.HandleError(w, err, "failed to delete user", "user_id", id)
 		return
 	}
 
