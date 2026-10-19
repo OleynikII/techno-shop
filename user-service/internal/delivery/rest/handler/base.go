@@ -8,16 +8,16 @@ import (
 	"user-service/internal/delivery/rest/response"
 	"user-service/internal/domain"
 
-	"github.com/go-playground/validator"
+	"github.com/go-playground/validator/v10"
 )
 
 type BaseHandler struct {
-	Validate *validator.Validate
+	validate *validator.Validate
 }
 
 func NewBaseHandler() *BaseHandler {
 	return &BaseHandler{
-		Validate: validator.New(),
+		validate: validator.New(validator.WithRequiredStructEnabled()),
 	}
 }
 
@@ -59,6 +59,50 @@ func (b *BaseHandler) ParseID(w http.ResponseWriter, r *http.Request, paramName 
 	}
 
 	return id, true
+}
+
+func (b *BaseHandler) ParseAndValidate(w http.ResponseWriter, r *http.Request, dst any) error {
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
+	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
+		return domain.NewValidationError(map[string]string{
+			"body": "invalid json body",
+		})
+	}
+
+	if err := b.validate.Struct(dst); err != nil {
+		fields := make(map[string]string)
+
+		if ve, ok := err.(validator.ValidationErrors); ok {
+			for _, e := range ve {
+				errorMsg := msgForTag(e.Tag(), e.Param())
+				fields[e.Field()] = errorMsg
+			}
+			return domain.NewValidationError(fields)
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func msgForTag(tag string, param string) string {
+	switch tag {
+	case "required":
+		return "This field is required"
+	case "email":
+		return "Invalid email format"
+	case "alphanum":
+		return "Must contain only letters and numbers (no spaces)"
+	case "min":
+		return "Must be at least " + param + " characters long"
+	case "max":
+		return "Must be at most " + param + " characters long"
+	default:
+		// Если тег неизвестен, отдаем его как есть или дефолтный текст
+		return "failed validation: " + tag
+	}
 }
 
 func (b *BaseHandler) HandleError(w http.ResponseWriter, err error, logMsg string, args ...any) {

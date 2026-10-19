@@ -117,23 +117,9 @@ func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 // @Failure      500      {object}  response.Error
 // @Router       /users [post]
 func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
-
 	var req request.CreateUser
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		validationErr := domain.NewValidationError(map[string]string{
-			"body": "invalid json format or empty body",
-		})
-		h.HandleError(w, validationErr, "failed to decode create request body")
-		return
-	}
-
-	vailidationErr := h.Validate.Struct(req)
-	if vailidationErr != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(vailidationErr.Error())
-
+	if err := h.ParseAndValidate(w, r, &req); err != nil {
+		h.HandleError(w, err, "failed to decode create request body")
 		return
 	}
 
@@ -185,11 +171,8 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req request.UpdateUser
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		validationErr := domain.NewValidationError(map[string]string{
-			"body": "invalid json format or empty body",
-		})
-		h.HandleError(w, validationErr, "failed to decode update request body", "user_id", id)
+	if err := h.ParseAndValidate(w, r, &req); err != nil {
+		h.HandleError(w, err, "failed to decode create request body")
 		return
 	}
 
